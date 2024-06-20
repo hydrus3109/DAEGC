@@ -51,4 +51,5 @@ class GAT(nn.Module):
         A_pred = torch.sigmoid(torch.matmul(Z, Z.t()))
         return A_pred
     def convert(adj):
-        return  from_scipy_sparse_matrix(adj)
+        edge_index, edge_weight = from_scipy_sparse_matrix(adj)
+        return  edge_index,edge_weight
