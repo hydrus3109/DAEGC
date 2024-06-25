@@ -12,7 +12,7 @@ from torch_geometric.utils.convert import from_scipy_sparse_matrix
 
 from layer import GATLayer
 
-
+"""
 class GAT(nn.Module):
     def __init__(self, num_features, hidden_size, embedding_size, alpha):
         super(GAT, self).__init__()
@@ -22,7 +22,6 @@ class GAT(nn.Module):
         self.convs = torch.nn.ModuleList()
         self.batch_norms = torch.nn.ModuleList()
         self.dropout_rate =  0.2
-        self.pool = DMoNPooling([hidden_size, hidden_size], embedding_size)
         # Initial GAT layer
         self.convs.append(GATConv(num_features, hidden_size, add_self_loops=True))
         self.batch_norms.append(BatchNorm1d(hidden_size))
@@ -50,6 +49,29 @@ class GAT(nn.Module):
     def dot_product_decode(self, Z):
         A_pred = torch.sigmoid(torch.matmul(Z, Z.t()))
         return A_pred
-    def convert(adj):
-        edge_index, edge_weight = from_scipy_sparse_matrix(adj)
-        return  edge_index,edge_weight
+    def convert(self, adj):
+        row_indices, col_indices = torch.nonzero(adj, as_tuple=True)
+        edge_index = torch.stack([row_indices, col_indices], dim=0)
+        edge_weight = adj[row_indices, col_indices]
+        return edge_index, edge_weight
+"""
+
+class GAT(nn.Module):
+    def __init__(self, num_features, hidden_size, embedding_size, alpha):
+        super(GAT, self).__init__()
+        self.hidden_size = hidden_size
+        self.embedding_size = embedding_size
+        self.alpha = alpha
+        self.conv1 = GATLayer(num_features, hidden_size, alpha)
+        self.conv2 = GATLayer(hidden_size, embedding_size, alpha)
+
+    def forward(self, x, adj, M):
+        h = self.conv1(x, adj, M)
+        h = self.conv2(h, adj, M)
+        z = F.normalize(h, p=2, dim=1)
+        A_pred = self.dot_product_decode(z)
+        return A_pred, z
+
+    def dot_product_decode(self, Z):
+        A_pred = torch.sigmoid(torch.matmul(Z, Z.t()))
+        return A_pred
