@@ -68,7 +68,7 @@ def trainer(dataset):
         _, z = model.gat(data, adj, M)
 
     # get kmeans and pretrain cluster result
-    kmeans = KMeans(n_clusters=args.n_clusters, n_init=20)
+    kmeans = KMeans(n_clusters=args.n_clusters, n_init=50)
     y_pred = kmeans.fit_predict(z.data.cpu().numpy())
     model.cluster_layer.data = torch.tensor(kmeans.cluster_centers_).to(device)
     eva(y, y_pred, 'pretrain')
