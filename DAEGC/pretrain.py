@@ -38,6 +38,8 @@ def pretrain(dataset):
     for epoch in range(args.max_epoch):
         model.train()
         A_pred, z = model(x, adj, M)
+        print(A_pred.size())
+        print(adj_label.size())
         loss = F.binary_cross_entropy(A_pred.view(-1), adj_label.view(-1))
         optimizer.zero_grad()
         loss.backward()
@@ -75,22 +77,31 @@ if __name__ == "__main__":
     device = torch.device("cuda" if args.cuda else "cpu")
 
     datasets = utils.get_dataset(args.name)
-    dataset = datasets[0]
+
 
     if args.name == "Citeseer":
         args.lr = 0.005
         args.k = None
         args.n_clusters = 6
+        dataset = datasets[0]
     elif args.name == "Cora":
         args.lr = 0.005
         args.k = None
         args.n_clusters = 7
+        dataset = datasets[0]
     elif args.name == "Pubmed":
         args.lr = 0.001
         args.k = None
         args.n_clusters = 3
+        dataset = datasets[0]
+    elif args.name == "MNIST":
+        args.lr = 0.001
+        args.k = None
+        args.n_clusters = 10
+        dataset = datasets
     else:
         args.k = None
+        dataset = datasets[0]
 
     args.input_dim = dataset.num_features
 
