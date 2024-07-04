@@ -55,7 +55,7 @@ class GAT(nn.Module):
         edge_weight = adj[row_indices, col_indices]
         return edge_index, edge_weight
 """
-"""
+
 class GAT(nn.Module):
     def __init__(self, num_features, hidden_size, embedding_size, alpha):
         super(GAT, self).__init__()
@@ -75,10 +75,10 @@ class GAT(nn.Module):
     def dot_product_decode(self, Z):
         A_pred = torch.sigmoid(torch.matmul(Z, Z.t()))
         return A_pred
-"""   
+ 
 
 
-
+"""
 class GINMLP(nn.Module):
     def __init__(self, input_dim, hidden_dim, output_dim):
         super(GINMLP, self).__init__()
@@ -136,3 +136,4 @@ class GAT(torch.nn.Module):
     def dot_product_decode(self, Z):
         A_pred = torch.sigmoid(torch.matmul(Z, Z.t()))
         return A_pred
+"""

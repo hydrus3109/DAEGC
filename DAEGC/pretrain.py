@@ -38,9 +38,7 @@ def pretrain(dataset):
     for epoch in range(args.max_epoch):
         model.train()
         A_pred, z = model(x, adj, M)
-        print(A_pred.size())
-        print(adj_label.size())
-        loss = F.binary_cross_entropy(A_pred.view(-1), adj_label.view(-1))
+        loss = F.cross_entropy(A_pred.view(-1), adj_label.view(-1))
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()

@@ -86,7 +86,7 @@ def trainer(dataset):
         p = target_distribution(Q.detach())
 
         kl_loss = F.kl_div(q.log(), p, reduction='batchmean')
-        re_loss = F.binary_cross_entropy(A_pred.view(-1), adj_label.view(-1))
+        re_loss = F.cross_entropy(A_pred.view(-1), adj_label.view(-1))
 
         loss = 10 * kl_loss + re_loss
 
@@ -114,20 +114,27 @@ if __name__ == "__main__":
     device = torch.device("cuda" if args.cuda else "cpu")
 
     datasets = utils.get_dataset(args.name)
-    dataset = datasets[0]
 
     if args.name == 'Citeseer':
       args.lr = 0.0001
       args.k = None
       args.n_clusters = 6
+      dataset = datasets[0]
     elif args.name == 'Cora':
       args.lr = 0.0001
       args.k = None
       args.n_clusters = 7
+      dataset = datasets[0]
     elif args.name == "Pubmed":
         args.lr = 0.001
         args.k = None
         args.n_clusters = 3
+        dataset = datasets[0]
+    elif args.name == "MNIST":
+        args.lr = 0.001
+        args.k = None
+        args.n_clusters = 10
+        dataset = datasets
     else:
         args.k = None
     
