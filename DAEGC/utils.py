@@ -1,3 +1,4 @@
+
 import numpy as np
 import torch
 from sklearn.preprocessing import normalize
@@ -34,8 +35,7 @@ def data_preprocessing(dataset):
     dataset.adj = torch.sparse_coo_tensor(
         dataset.edge_index, torch.ones(dataset.edge_index.shape[1]), torch.Size([dataset.x.shape[0], dataset.x.shape[0]])
     ).to_dense()
-    dataset.adj_label = dataset.adj
-
+    dataset.adj_label = dataset.adj.clone()
     dataset.adj += torch.eye(dataset.x.shape[0])
     dataset.adj = normalize(dataset.adj, norm="l1")
     dataset.adj = torch.from_numpy(dataset.adj).to(dtype=torch.float)
