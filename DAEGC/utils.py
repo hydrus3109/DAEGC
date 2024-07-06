@@ -7,16 +7,16 @@ from torch_geometric.datasets import Planetoid
 
 
 def get_dataset(dataset):
-    datasets = Planetoid('./dataset', dataset)
-    #datasets = create_pyg_dataset()
+    #datasets = Planetoid('./dataset', dataset)
+    datasets = create_pyg_dataset()
     return datasets
 
 
 def create_pyg_dataset():
     # Load numpy arrays from files
-    node_features = np.load('/content/DAEGC/DAEGC/MNIST10k.npy')
-    edge_index = np.load('/content/DAEGC/DAEGC/edgeindex10k.npy')
-    labels = np.load('/content/DAEGC/DAEGC/labels10k.npy')
+    node_features = np.load('/content/DAEGC/DAEGC/MNIST20k.npy')
+    edge_index = np.load('/content/DAEGC/DAEGC/edgeindex20k.npy')
+    labels = np.load('/content/DAEGC/DAEGC/labels20k.npy')
     #min_val = np.min(node_features[:5000])
    # max_val = np.max(node_features[:5000])
     #node_features = (node_features[:5000] - min_val) / (max_val - min_val)

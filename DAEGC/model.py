@@ -12,7 +12,7 @@ from torch_geometric.utils.convert import from_scipy_sparse_matrix
 from torch_geometric.nn import GINConv
 from layer import GATLayer
 
-"""
+
 class GAT(nn.Module):
     def __init__(self, num_features, hidden_size, embedding_size, alpha):
         super(GAT, self).__init__()
@@ -54,6 +54,7 @@ class GAT(nn.Module):
         edge_index = torch.stack([row_indices, col_indices], dim=0)
         edge_weight = adj[row_indices, col_indices]
         return edge_index, edge_weight
+
 """
 
 class GAT(nn.Module):
@@ -76,7 +77,7 @@ class GAT(nn.Module):
         A_pred = torch.sigmoid(torch.matmul(Z, Z.t()))
         return A_pred
  
-
+"""
 
 """
 class GINMLP(nn.Module):
@@ -113,16 +114,17 @@ class GAT(torch.nn.Module):
 
         # Hidden GIN layers
         for _ in range(3):
-            mlp = GINMLP(num_features,hidden_size,hidden_size)
+            mlp = GINMLP(hidden_size,hidden_size,hidden_size)
             self.convs.append(GINConv(mlp, train_eps=True))
             self.batch_norms.append(BatchNorm1d(hidden_size))
 
         # Final GIN layer
-        mlp = GINMLP(num_features,hidden_size,hidden_size)
+        mlp = GINMLP(hidden_size,hidden_size,embedding_size)
         self.convs.append(GINConv(mlp, train_eps=True))
         self.batch_norms.append(BatchNorm1d(embedding_size))
 
-    def forward(self, x, edge_index):
+    def forward(self, x, adj, M):
+        edge_index, edge_weight = self.convert(adj)
         for conv, batch_norm in zip(self.convs[:-1], self.batch_norms[:-1]):
             x = conv(x, edge_index)
             x = batch_norm(x)
@@ -136,4 +138,9 @@ class GAT(torch.nn.Module):
     def dot_product_decode(self, Z):
         A_pred = torch.sigmoid(torch.matmul(Z, Z.t()))
         return A_pred
+    def convert(self, adj):
+        row_indices, col_indices = torch.nonzero(adj, as_tuple=True)
+        edge_index = torch.stack([row_indices, col_indices], dim=0)
+        edge_weight = adj[row_indices, col_indices]
+        return edge_index, edge_weight
 """
