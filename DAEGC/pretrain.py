@@ -9,7 +9,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.parameter import Parameter
 from torch.optim import Adam
-
+from torch_geometric.loader import NeighborLoader
 import utils
 from model import GAT
 from evaluation import eva
@@ -24,31 +24,42 @@ def pretrain(dataset):
     ).to(device)
     print(model)
     optimizer = Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
-
-    # data process
-    dataset = utils.data_preprocessing(dataset)
-    adj = dataset.adj.to(device)
-    adj_label = dataset.adj_label.to(device)
-    M = utils.get_M(adj).to(device)
-
+    loader = NeighborLoader(dataset, num_neighbors=[30]*2, shuffle=True, num_workers = 2, batch_size =128)
+    # data process for adj
+    #dataset = utils.data_preprocessing(dataset)
+    #adj = dataset.adj.to(device)
+    #adj_label = dataset.adj_label.to(device)
+    #M = utils.get_M(adj).to(device)
+    """
+    edge index processing
+    """
+    edge_index = (dataset.edge_index).to(device)
     # data and label
     x = torch.Tensor(dataset.x).to(device)
     y = dataset.y.cpu().numpy()
 
     for epoch in range(args.max_epoch):
-        model.train()
-        A_pred, z = model(x, adj, M)
-        loss = F.binary_cross_entropy(A_pred.view(-1), adj_label.view(-1))
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-
-        with torch.no_grad():
-            _, z = model(x, adj, M)
-            kmeans = KMeans(n_clusters=args.n_clusters, n_init=20).fit(
-                z.data.cpu().numpy()
-            )
-            acc, nmi, ari, f1 = eva(y, kmeans.labels_, epoch)
+        count = 0
+        for data in loader:
+            dataset = utils.data_preprocessing(dataset)
+            adj = dataset.adj.to(device)
+            adj_label = dataset.adj_label.to(device)
+            M = utils.get_M(adj).to(device)
+            model.train()
+            A_pred, z = model(x, adj, M)
+            #A_pred, z = model(x, edge_index)
+            loss = F.binary_cross_entropy(A_pred.view(-1), adj_label.view(-1))
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+            if count % 100 == 0:
+                with torch.no_grad():
+                    _, z = model(x, adj, M)
+                    kmeans = KMeans(n_clusters=args.n_clusters, n_init=20).fit(
+                        z.data.cpu().numpy()
+                    )
+                    acc, nmi, ari, f1 = eva(y, kmeans.labels_, epoch)
+            count = count + 1
         if epoch % 5 == 0:
             torch.save(
                 model.state_dict(), f"./pretrain/predaegc_{args.name}_{epoch}.pkl"
