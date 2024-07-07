@@ -46,9 +46,9 @@ def pretrain(dataset):
             dataset = utils.data_preprocessing(data)
             adj = dataset.adj.to(device)
             adj_label = dataset.adj_label.to(device)
-            #M = utils.get_M(adj).to(device)
+            M = utils.get_M(adj).to(device)
             model.train()
-            A_pred, z = model(data.x.to(device), adj)
+            A_pred, z = model(data.x.to(device), adj, M)
             #A_pred, z = model(x, edge_index)
             loss = F.binary_cross_entropy(A_pred.view(-1), adj_label.view(-1))
             optimizer.zero_grad()
@@ -56,7 +56,7 @@ def pretrain(dataset):
             optimizer.step()
             if count % 5 == 0:
                 with torch.no_grad():
-                    _, z = model(data.x.to(device), adj)
+                    _, z = model(data.x.to(device), adj, M)
                     kmeans = KMeans(n_clusters=args.n_clusters, n_init=20).fit(
                         z.data.cpu().numpy()
                     )
