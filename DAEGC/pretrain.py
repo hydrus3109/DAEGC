@@ -59,7 +59,7 @@ def pretrain(dataset):
             optimizer.step()
             if count % 5 == 0:
                 with torch.no_grad():
-                    _, z = model(data.x.to(device), adj, M)
+                    _, z = model(data.x.to(device), edge_index,edge_weight)
                     kmeans = KMeans(n_clusters=args.n_clusters, n_init=20).fit(
                         z.data.cpu().numpy()
                     )
