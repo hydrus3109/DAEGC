@@ -11,7 +11,7 @@ from torch.nn.parameter import Parameter
 from torch.optim import Adam
 
 from torch_geometric.datasets import Planetoid
-
+from torch_geometric.loader import NeighborLoader
 import utils
 from model import GAT
 from evaluation import eva
@@ -53,7 +53,7 @@ def trainer(dataset):
                   embedding_size=args.embedding_size, alpha=args.alpha, num_clusters=args.n_clusters).to(device)
     print(model)
     optimizer = Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
-
+    """
     # data process
     dataset = utils.data_preprocessing(dataset)
     adj = dataset.adj.to(device)
@@ -72,27 +72,35 @@ def trainer(dataset):
     y_pred = kmeans.fit_predict(z.data.cpu().numpy())
     model.cluster_layer.data = torch.tensor(kmeans.cluster_centers_).to(device)
     eva(y, y_pred, 'pretrain')
-
+    """
+    loader = NeighborLoader(dataset, num_neighbors=[30]*2, shuffle=True, num_workers = 2, batch_size =10000)
     for epoch in range(args.max_epoch):
+        count = 0
         model.train()
-        if epoch % args.update_interval == 0:
-            # update_interval
-            A_pred, z, Q = model(data, adj, M)
+        for data in loader:
+            dataset = utils.data_preprocessing(data)
+            adj = dataset.adj.to(device)
+            adj_label = dataset.adj_label.to(device)
+            M = utils.get_M(adj).to(device)
             
-            q = Q.detach().data.cpu().numpy().argmax(1)  # Q
-            eva(y, q, epoch)
+            if epoch % args.update_interval == 0:
+                # update_interval
+                A_pred, z, Q = model(data.x.to(device), adj, M)
+                
+                q = Q.detach().data.cpu().numpy().argmax(1)  # Q
+                eva(data.y, q, epoch)
 
-        A_pred, z, q = model(data, adj, M)
-        p = target_distribution(Q.detach())
+            A_pred, z, q = model(data.x.to(device), adj, M)
+            p = target_distribution(Q.detach())
 
-        kl_loss = F.kl_div(q.log(), p, reduction='batchmean')
-        re_loss = F.binary_cross_entropy(A_pred.view(-1), adj_label.view(-1))
+            kl_loss = F.kl_div(q.log(), p, reduction='batchmean')
+            re_loss = F.binary_cross_entropy(A_pred.view(-1), adj_label.view(-1))
 
-        loss = 10 * kl_loss + re_loss
+            loss = 10 * kl_loss + re_loss
 
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(

@@ -35,25 +35,21 @@ class GAT(nn.Module):
         self.convs.append(GATConv(hidden_size, embedding_size, add_self_loops=True))
         self.batch_norms.append(BatchNorm1d(embedding_size))
 
-    def forward(self, x, adj, M):
-        edge_index, edge_weight = self.convert(adj)
+    def forward(self, x, edge_index, edge_weight):
         for conv, batch_norm in zip(self.convs[:-1], self.batch_norms[:-1]):
             x = conv(x, edge_index,edge_weight)
             x = batch_norm(x)
             x = F.relu(x)
             x = F.dropout(x, p=self.dropout_rate, training=self.training)
+        adj = to_dense_adj(edge_index)
+        _, _, adj, sp1, o1, c1 = self.pool(x, adj)
         z = F.normalize(x, p=2, dim=1)
         A_pred = self.dot_product_decode(z)
-        return A_pred, z
+        return A_pred, z, sp1+o1+c1
 
     def dot_product_decode(self, Z):
         A_pred = torch.sigmoid(torch.matmul(Z, Z.t()))
         return A_pred
-    def convert(self, adj):
-        row_indices, col_indices = torch.nonzero(adj, as_tuple=True)
-        edge_index = torch.stack([row_indices, col_indices], dim=0)
-        edge_weight = adj[row_indices, col_indices]
-        return edge_index, edge_weight
 
 """
 

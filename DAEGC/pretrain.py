@@ -43,14 +43,17 @@ def pretrain(dataset):
     for epoch in range(args.max_epoch):
         count = 0
         for data in loader:
-            dataset = utils.data_preprocessing(data)
-            adj = dataset.adj.to(device)
-            adj_label = dataset.adj_label.to(device)
-            M = utils.get_M(adj).to(device)
+            #dataset = utils.data_preprocessing(data)
+            #adj = dataset.adj.to(device)
+            #adj_label = dataset.adj_label.to(device)
+            #M = utils.get_M(adj).to(device)
+            edge_index = dataset.edge_index
+            edge_weight = dataset.edge_weight
             model.train()
-            A_pred, z = model(data.x.to(device), adj, M)
+            A_pred, z, totloss = model(data.x.to(device), edge_index, edge_weight)
             #A_pred, z = model(x, edge_index)
-            loss = F.binary_cross_entropy(A_pred.view(-1), adj_label.view(-1))
+            #loss = F.binary_cross_entropy(A_pred.view(-1), adj_label.view(-1))
+            loss = totloss + A_pred
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
