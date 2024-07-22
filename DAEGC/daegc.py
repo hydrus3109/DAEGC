@@ -32,11 +32,11 @@ class DAEGC(nn.Module):
         torch.nn.init.xavier_normal_(self.cluster_layer.data)
 
 
-    def forward(self, x, adj, M):
-        A_pred, z = self.gat(x, adj, M)
+    def forward(self, x, edge_index):
+        A_pred, z, loss = self.gat(x, edge_index)
         q = self.get_Q(z)
 
-        return A_pred, z, q
+        return A_pred, z, q, loss
 
     def get_Q(self, z):
         q = 1.0 / (1.0 + torch.sum(torch.pow(z.unsqueeze(1) - self.cluster_layer, 2), 2) / self.v)
@@ -73,30 +73,31 @@ def trainer(dataset):
     model.cluster_layer.data = torch.tensor(kmeans.cluster_centers_).to(device)
     eva(y, y_pred, 'pretrain')
     """
-    loader = NeighborLoader(dataset, num_neighbors=[30]*2, shuffle=True, num_workers = 2, batch_size =10000)
+    loader = NeighborLoader(dataset, num_neighbors=[30]*2, shuffle=True, num_workers = 2, batch_size =5000)
     for epoch in range(args.max_epoch):
         count = 0
         model.train()
         for data in loader:
-            dataset = utils.data_preprocessing(data)
-            adj = dataset.adj.to(device)
-            adj_label = dataset.adj_label.to(device)
-            M = utils.get_M(adj).to(device)
-            
+            """
+              dataset = utils.data_preprocessing(data)
+              adj = dataset.adj.to(device)
+              adj_label = dataset.adj_label.to(device)
+              M = utils.get_M(adj).to(device)
+            """
             if epoch % args.update_interval == 0:
                 # update_interval
-                A_pred, z, Q = model(data.x.to(device), adj, M)
-                
+                A_pred, z, Q, _ = model(data.x.to(device), data.edge_index.to(device))
+                #print(data.y)
                 q = Q.detach().data.cpu().numpy().argmax(1)  # Q
-                eva(data.y, q, epoch)
+                eva(data.y.numpy(), q, epoch)
 
-            A_pred, z, q = model(data.x.to(device), adj, M)
+            A_pred, z, q, totloss = model(data.x.to(device), data.edge_index.to(device))
             p = target_distribution(Q.detach())
 
             kl_loss = F.kl_div(q.log(), p, reduction='batchmean')
-            re_loss = F.binary_cross_entropy(A_pred.view(-1), adj_label.view(-1))
+            #re_loss = F.binary_cross_entropy(A_pred.view(-1), adj_label.view(-1))
 
-            loss = 10 * kl_loss + re_loss
+            loss = 10 * kl_loss + totloss
 
             optimizer.zero_grad()
             loss.backward()
