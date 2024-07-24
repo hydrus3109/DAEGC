@@ -14,18 +14,20 @@ def get_dataset(dataset):
 
 def create_pyg_dataset():
     # Load numpy arrays from files
-    node_features = np.load('/content/DAEGC/DAEGC/MNIST20k.npy')
-    edge_index = np.load('/content/DAEGC/DAEGC/edgeindex20k.npy')
-    labels = np.load('/content/DAEGC/DAEGC/labels20k.npy')
+    node_features = np.load('/content/DAEGC/DAEGC/MNIST70k.npy')
+    edge_index = np.load('/content/DAEGC/DAEGC/edgeindex70k.npy')
+    edge_weight = np.load('/content/DAEGC/DAEGC/edgeweight70k.npy')
+    labels = np.load('/content/DAEGC/DAEGC/labels70k.npy')
     #min_val = np.min(node_features[:5000])
    # max_val = np.max(node_features[:5000])
     #node_features = (node_features[:5000] - min_val) / (max_val - min_val)
     # Convert numpy arrays to torch tensors
     x = torch.tensor(node_features, dtype=torch.float)
     edge_index = torch.tensor(edge_index, dtype=torch.long)
+    edge_weight = torch.tensor(edge_weight, dtype=torch.float)
     y = torch.tensor(labels, dtype=torch.long) 
     # Create a PyTorch Geometric data object
-    data = Data(x=x, edge_index=edge_index,y=y)
+    data = Data(x=x, edge_index=edge_index, edge_weight = edge_weight, y=y)
     
     return data
 

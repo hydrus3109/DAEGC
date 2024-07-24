@@ -37,12 +37,13 @@ class GAT(nn.Module):
 
     def forward(self, x, edge_index, edge_weight):
         for conv, batch_norm in zip(self.convs[:-1], self.batch_norms[:-1]):
-            x = conv(x, edge_index,edge_weight)
+            x = conv(x, edge_index, edge_attr = edge_weight)
             x = batch_norm(x)
             x = F.relu(x)
             x = F.dropout(x, p=self.dropout_rate, training=self.training)
         adj = to_dense_adj(edge_index)
         _, _, adj, sp1, o1, c1 = self.pool(x, adj)
+        x = self.convs[-1](x, edge_index, edge_weight)
         z = F.normalize(x, p=2, dim=1)
         A_pred = self.dot_product_decode(z)
         return A_pred, z, sp1+o1+c1
