@@ -15,6 +15,33 @@ from model import GAT
 from evaluation import eva
 
 
+class lossmodel(nn.Module):
+    def __init__(self, n_clusters, dropout_rate = 0):
+        super(lossmodel, self).__init__()
+        self.n_clusters = n_clusters
+        self.dropout_rate = 0
+
+        # Define the layers
+        self.transform = nn.Sequential(
+            nn.Linear(n_clusters, n_clusters),
+            nn.Dropout(dropout_rate)
+        )
+
+        # Initialize weights
+        nn.init.orthogonal_(self.transform[0].weight)
+        nn.init.zeros_(self.transform[0].bias)
+
+    def forward(self, x):
+        return self.transform(x)
+
+
+def calculate_collapse_loss(number_of_nodes, n_clusters, output, lossize):
+    model = lossmodel(n_clusters).to(device)
+    assignments = F.softmax(model(output), dim=1)
+    cluster_sizes = torch.sum(assignments, dim=0)
+    collapse_loss = torch.norm(cluster_sizes) / number_of_nodes * torch.sqrt(torch.tensor(float(n_clusters))) - 1
+    return collapse_loss*lossize
+
 def pretrain(dataset):
     model = GAT(
         num_features=args.input_dim,
@@ -24,7 +51,7 @@ def pretrain(dataset):
     ).to(device)
     print(model)
     optimizer = Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
-    loader = NeighborLoader(dataset, num_neighbors=[10]*2, shuffle=True, num_workers = 2, batch_size =5000)
+    loader = NeighborLoader(dataset, num_neighbors=[10]*2, shuffle=True, num_workers = 2, batch_size =256)
     # data process for adj
     #dataset = utils.data_preprocessing(dataset)
     #adj = dataset.adj.to(device)
@@ -47,19 +74,20 @@ def pretrain(dataset):
             #adj = dataset.adj.to(device)
             #adj_label = dataset.adj_label.to(device)
             #M = utils.get_M(adj).to(device)
-            edge_index = dataset.edge_index.to(device)
-            edge_weight = dataset.edge_weight.to(device)
+            edge_index = data.edge_index.to(device)
+            edge_weight = data.edge_weight.to(device)
             model.train()
-            A_pred, z, totloss = model(data.x.to(device), edge_index, edge_weight)
+            out, z, totloss = model(data.x.to(device), edge_index, edge_weight)
             #A_pred, z = model(x, edge_index)
             #loss = F.binary_cross_entropy(A_pred.view(-1), adj_label.view(-1))
-            loss = totloss
+            out = out.squeeze()
+            loss = totloss + calculate_collapse_loss(data.num_nodes,16,out,0.1)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
             if count % 5 == 0:
                 with torch.no_grad():
-                    _, z = model(data.x.to(device), edge_index,edge_weight)
+                    _, z, totloss = model(data.x.to(device), edge_index,edge_weight)
                     kmeans = KMeans(n_clusters=args.n_clusters, n_init=20).fit(
                         z.data.cpu().numpy()
                     )

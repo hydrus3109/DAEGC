@@ -22,6 +22,7 @@ class GAT(nn.Module):
         self.convs = torch.nn.ModuleList()
         self.batch_norms = torch.nn.ModuleList()
         self.dropout_rate =  0.2
+        self.pool = DMoNPooling([hidden_size, hidden_size], embedding_size)
         # Initial GAT layer
         self.convs.append(GATConv(num_features, hidden_size, add_self_loops=True))
         self.batch_norms.append(BatchNorm1d(hidden_size))
@@ -42,11 +43,11 @@ class GAT(nn.Module):
             x = F.relu(x)
             x = F.dropout(x, p=self.dropout_rate, training=self.training)
         adj = to_dense_adj(edge_index)
-        _, _, adj, sp1, o1, c1 = self.pool(x, adj)
+        out, _, adj, sp1, o1, c1 = self.pool(x, adj)
         x = self.convs[-1](x, edge_index, edge_weight)
         z = F.normalize(x, p=2, dim=1)
-        A_pred = self.dot_product_decode(z)
-        return A_pred, z, sp1+o1+c1
+        #A_pred = self.dot_product_decode(z)
+        return out, z, sp1+o1+c1
 
     def dot_product_decode(self, Z):
         A_pred = torch.sigmoid(torch.matmul(Z, Z.t()))
